@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const usersPath = path.join(__dirname, 'users.json');
+const usersPath = path.join(__dirname, '../db/users.json');
 let sessions = {}; // token -> userId
 
 function authenticate(username, password) {
