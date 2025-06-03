@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js",
-    "ws": "node websocket.js",
+    "start": "node src/server.js",
+    "ws": "node src/websocket.js",
     "test": "node --test"
   },
   "dependencies": {
