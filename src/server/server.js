@@ -2,11 +2,28 @@
 const http = require('http');
 const fs = require('fs');
 const url = require('url');
+const path = require('path');
 const { authenticate, getUserIdFromToken } = require('./auth');
 const { saveFile, getFilePath, deleteFile, listFiles } = require('./file');
 
+
+const clientDir = path.join(__dirname, '../client');
+
 const server = http.createServer((req, res) => {
-  if (req.method === 'POST' && (req.url === '/login' || req.url === '/login/')) {
+  // Serve static files from src/client
+  if (req.method === 'GET' && (req.url === '/' || req.url.startsWith('/main.js'))) {
+    let filePath = path.join(clientDir, req.url === '/' ? 'index.html' : req.url.slice(1));
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(404);
+        return res.end('Not found');
+      }
+      res.writeHead(200, { 'Content-Type': filePath.endsWith('.js') ? 'application/javascript' : 'text/html' });
+      res.end(data);
+    });
+    return;
+  }
+  else if (req.method === 'POST' && (req.url === '/login' || req.url === '/login/')) {
     let body = '';
     req.on('data', chunk => (body += chunk));
     req.on('end', () => {
@@ -34,7 +51,7 @@ const server = http.createServer((req, res) => {
       }
       // Utilisateur authentifié, on ajoute le fichier sous son userId
       const filePath = `../db/files/${userId}/${filename}`;
-      if (fs.exists(filePath)) {
+      if (fs.existsSync(filePath)) {
         res.writeHead(409);
         return res.end('Un fichier avec ce nom existe déjà');
       }
@@ -77,11 +94,6 @@ const server = http.createServer((req, res) => {
       res.writeHead(404);
       return res.end('Fichier non trouvé');
     }
-  }
-  else {
-    // Page d'accueil
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Bienvenue dans le gestionnaire de fichiers !');
   }
 });
 

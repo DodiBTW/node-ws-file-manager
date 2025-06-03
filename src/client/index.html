@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestionnaire de Fichiers</title>
+</head>
+<body>
+  <h1>Gestionnaire de Fichiers</h1>
+  <div id="login">
+    <input id="username" placeholder="Nom d'utilisateur">
+    <input id="password" type="password" placeholder="Mot de passe">
+    <button onclick="login()">Connexion</button>
+    <div id="login-status"></div>
+  </div>
+  <div id="file-manager" style="display:none;">
+    <h2>Vos fichiers</h2>
+    <ul id="file-list"></ul>
+    <input type="file" id="upload-file" onchange="onFileSelected()" />
+    <input id="upload-filename" placeholder="Nom du fichier" />
+    <button onclick="uploadFile()">Uploader</button>
+    <div id="upload-status"></div>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>

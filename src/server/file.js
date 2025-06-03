@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const filePath = path.join(__dirname, '../db/files/');
 
 function saveFile(userId, filename, content) {
-  const userDir = path.join(__dirname, '../uploads', userId);
+  const userDir = path.join(__dirname, '../db/files/', userId);
   const filePath = path.join(userDir, filename);
 
   // Créer le répertoire de l'utilisateur s'il n'existe pas
@@ -35,3 +35,5 @@ function listFiles(userId) {
     name: file,
   }));
 }
+
+module.exports = { saveFile, getFilePath, deleteFile, listFiles };
