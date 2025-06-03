@@ -1,1 +1,2 @@
 src/db/files/*
+!src/db/files/.gitkeep
