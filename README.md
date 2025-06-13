@@ -12,4 +12,5 @@
 npm install
 npm start        # Lancer l'API HTTP
 npm run ws       # Lancer le serveur WebSocket
+npm run test     # Lancer les tests des serveurs
 ```

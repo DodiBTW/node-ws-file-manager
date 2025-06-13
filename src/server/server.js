@@ -4,10 +4,24 @@ const fs = require('fs');
 const url = require('url');
 const path = require('path');
 const { authenticate, getUserIdFromToken } = require('./auth');
-const { saveFile, getFilePath, deleteFile, listFiles } = require('./file');
-
+const { saveFile, getFilePath, deleteFile, listFiles , compressUserDirectory} = require('./file');
+const WebSocket = require('ws');
+let wsNotify = null;
 
 const clientDir = path.join(__dirname, '../client');
+
+
+function sendWsNotification(userId, payload) {
+  if (!wsNotify || wsNotify.readyState !== WebSocket.OPEN) {
+    wsNotify = new WebSocket('ws://localhost:8081');
+    wsNotify.on('open', () => {
+      wsNotify.send(JSON.stringify({ __relay: true, userId, payload }));
+    });
+    wsNotify.on('error', () => {});
+  } else {
+    wsNotify.send(JSON.stringify({ __relay: true, userId, payload }));
+  }
+}
 
 const server = http.createServer((req, res) => {
   // Serve static files from src/client
@@ -61,6 +75,7 @@ const server = http.createServer((req, res) => {
         return res.end('Erreur lors de l\'enregistrement de votre fichier');
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
+      sendWsNotification(userId, { type: 'file-change', action: 'upload', file: filename });
       res.end(JSON.stringify({ filePath }));
     }
     );
@@ -88,6 +103,7 @@ const server = http.createServer((req, res) => {
     const filename = req.url.split('/').pop();
     const success = deleteFile(userId, filename);
     if (success) {
+      sendWsNotification(userId, { type: 'file-change', action: 'delete', file: filename });
       res.writeHead(204);
       return res.end();
     } else {
@@ -95,6 +111,64 @@ const server = http.createServer((req, res) => {
       return res.end('Fichier non trouvé');
     }
   }
+  else if (req.method === 'POST' && req.url === '/compress') {
+    let body = '';
+    req.on('data', chunk => (body += chunk));
+    req.on('end', () => {
+      let token;
+      try {
+        token = JSON.parse(body).token;
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Bad request' }));
+      }
+      const userId = getUserIdFromToken(token);
+      if (!userId) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Unauthorized' }));
+      }
+      compressUserDirectory(userId)
+        .then(zipPath => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ archive: 'archive.zip' }));
+        })
+        .catch(err => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Erreur lors de la compression' }));
+          console.error('Erreur lors de la compression : ', err);
+        });
+    });
+  } 
+
+  else if (req.method === 'GET' && req.url.startsWith('/download/')) {
+    const token = req.headers.authorization?.split(' ')[1];
+    const userId = getUserIdFromToken(token);
+    if (!userId) {
+      res.writeHead(401);
+      return res.end('Unauthorized');
+    }
+    const filename = decodeURIComponent(req.url.replace('/download/', ''));
+    const filePath = path.join(__dirname, '../db/files', userId, filename);
+    if (!fs.existsSync(filePath)) {
+      res.writeHead(404);
+      return res.end('Fichier non trouvé');
+    }
+    const stream = fs.createReadStream(filePath);
+    res.writeHead(200, {
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${filename}"`
+    });
+    stream.pipe(res);
+    stream.on('error', () => {
+      res.writeHead(500);
+      res.end('Erreur lors du téléchargement');
+    });
+  }
+
+  else {
+  res.writeHead(404);
+  res.end('Not found');
+}
 });
 
 server.listen(3000, () => {
