@@ -14,3 +14,14 @@ npm start        # Lancer l'API HTTP
 npm run ws       # Lancer le serveur WebSocket
 npm run test     # Lancer les tests des serveurs
 ```
+
+
+
+---
+
+## Explication 
+
+Le projet est organisé pour être le plus clair possible : chaque partie du code a son propre fichier (serveur HTTP, WebSocket, logique fichiers, etc.), ce qui rend la maintenance et la compréhension plus faciles.
+Le code est commenté, et les noms de fonctions/variables sont explicites pour qu’on sache direct à quoi ça sert.
+
+Les tests automatiques (avec la lib interne de Node) vérifient les fonctionnalités principales : connexion, upload, suppression, compression…

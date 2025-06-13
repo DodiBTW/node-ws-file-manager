@@ -3,7 +3,7 @@ const WebSocket = require('ws');
 const clients = new Map();
 
 const wss = new WebSocket.Server({ port: 8081 }, () => {
-  console.log('WebSocket server started on ws://localhost:8081');
+  console.log('WebSocket server démarré sur ws://localhost:8081');
 });
 
 wss.on('connection', ws => {

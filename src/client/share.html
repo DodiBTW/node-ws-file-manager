@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Dossier partagé</title>
+</head>
+<body>
+  <h2>Fichiers partagés</h2>
+  <ul id="file-list"></ul>
+  <script>
+    const userId = "{{USER_ID}}";
+    const shareToken = "{{SHARE_TOKEN}}";
+    fetch(`/share/${userId}/${shareToken}/files`)
+      .then(res => res.json())
+      .then(files => {
+        const ul = document.getElementById('file-list');
+        files.forEach(f => {
+          const li = document.createElement('li');
+          li.textContent = f.name + ' ';
+          const btn = document.createElement('button');
+          btn.textContent = 'Télécharger';
+          btn.onclick = () => {
+            window.location = `/share/${userId}/${shareToken}/download/${encodeURIComponent(f.name)}`;
+          };
+          li.appendChild(btn);
+          ul.appendChild(li);
+        });
+      });
+  </script>
+</body>
+</html>

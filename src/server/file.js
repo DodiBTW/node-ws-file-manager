@@ -14,7 +14,8 @@ function saveFile(userId, filename, content) {
   fs.mkdirSync(userDir, { recursive: true });
 
   // Enregistrer le fichier
-  fs.writeFileSync(filePath, content);
+  const buffer = Buffer.from(content, 'base64');
+  fs.writeFileSync(filePath, buffer);
   
   return filePath;
 }

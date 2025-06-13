@@ -37,7 +37,7 @@ async function httpRequest(options, body) {
 before(async () => {
   wsServer = await startServer('node', ['src/server/websocket.js'], 'WebSocket server started');
   httpServer = await startServer('node', ['src/server/server.js'], 'Serveur démarré');
-  await wait(500); // Give servers a moment to be ready
+  await wait(500);
 });
 
 after(() => {

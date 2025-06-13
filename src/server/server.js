@@ -6,12 +6,14 @@ const path = require('path');
 const { authenticate, getUserIdFromToken } = require('./auth');
 const { saveFile, getFilePath, deleteFile, listFiles , compressUserDirectory} = require('./file');
 const WebSocket = require('ws');
+const { createShare, getShare } = require('./share');
 let wsNotify = null;
 
 const clientDir = path.join(__dirname, '../client');
 
 
 function sendWsNotification(userId, payload) {
+  // Envoie une notification au serveur ws qui va la forward au client.
   if (!wsNotify || wsNotify.readyState !== WebSocket.OPEN) {
     wsNotify = new WebSocket('ws://localhost:8081');
     wsNotify.on('open', () => {
@@ -24,8 +26,8 @@ function sendWsNotification(userId, payload) {
 }
 
 const server = http.createServer((req, res) => {
-  // Serve static files from src/client
   if (req.method === 'GET' && (req.url === '/' || req.url.startsWith('/main.js'))) {
+    // Page d'accueil
     let filePath = path.join(clientDir, req.url === '/' ? 'index.html' : req.url.slice(1));
     fs.readFile(filePath, (err, data) => {
       if (err) {
@@ -112,6 +114,7 @@ const server = http.createServer((req, res) => {
     }
   }
   else if (req.method === 'POST' && req.url === '/compress') {
+    // Compression des fichiers de l'utilisateur
     let body = '';
     req.on('data', chunk => (body += chunk));
     req.on('end', () => {
@@ -163,6 +166,80 @@ const server = http.createServer((req, res) => {
       res.writeHead(500);
       res.end('Erreur lors du téléchargement');
     });
+  }
+  else if(req.method == 'POST' && req.url === '/share') {
+    let body = '';
+    req.on('data', chunk => (body += chunk));
+    req.on('end', () => {
+      const { token } = JSON.parse(body);
+      const userId = getUserIdFromToken(token);
+      if (!userId) {
+        res.writeHead(401);
+        return res.end('Unauthorized');
+      }
+      const shareToken = Math.random().toString(36).slice(2, 10);
+      createShare(userId, shareToken);
+      const shareLink = `http://localhost:3000/share/${userId}/${shareToken}`;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ link: shareLink }));
+    });
+  }
+
+  else if (req.method === 'GET' && req.url.startsWith('/share/')) {
+    const parts = req.url.split('/');
+    // /share/:userId/:shareToken
+    if (parts.length === 4) {
+      const userId = parts[2];
+      const shareToken = parts[3];
+      if (!getShare(userId, shareToken)) {
+        res.writeHead(403);
+        return res.end('Lien de partage invalide');
+      }
+      // Serve share.html with injected variables
+      const htmlPath = path.join(clientDir, 'share.html');
+      let html = fs.readFileSync(htmlPath, 'utf8');
+      html = html.replace('{{USER_ID}}', userId).replace('{{SHARE_TOKEN}}', shareToken);
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      return res.end(html);
+    }
+    // /share/:userId/:shareToken/files
+    if (parts.length === 5 && parts[4] === 'files') {
+      const userId = parts[2];
+      const shareToken = parts[3];
+      if (!getShare(userId, shareToken)) {
+        res.writeHead(403);
+        return res.end('Lien de partage invalide');
+      }
+      const files = listFiles(userId);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(files));
+    }
+    // /share/:userId/:shareToken/download/:filename
+    if (parts.length === 6 && parts[4] === 'download') {
+      const userId = parts[2];
+      const shareToken = parts[3];
+      const filename = decodeURIComponent(parts[5]);
+      if (!getShare(userId, shareToken)) {
+        res.writeHead(403);
+        return res.end('Lien de partage invalide');
+      }
+      const filePath = path.join(__dirname, '../db/files', userId, filename);
+      if (!fs.existsSync(filePath)) {
+        res.writeHead(404);
+        return res.end('Fichier non trouvé');
+      }
+      const stream = fs.createReadStream(filePath);
+      res.writeHead(200, {
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${filename}"`
+      });
+      stream.pipe(res);
+      stream.on('error', () => {
+        res.writeHead(500);
+        res.end('Erreur lors du téléchargement');
+      });
+      return;
+    }
   }
 
   else {

@@ -177,3 +177,20 @@ function compressFiles() {
     }
   });
 }
+
+function shareFolder() {
+  fetch('/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.link) {
+      document.getElementById('share-link').innerHTML =
+        `<span>Lien de partage : <a href="${data.link}" target="_blank">${data.link}</a></span>`;
+    } else {
+      document.getElementById('share-link').innerText = 'Erreur lors de la création du lien de partage';
+    }
+  });
+}
