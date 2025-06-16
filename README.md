@@ -25,4 +25,4 @@ Le code est commenté, et les noms de fonctions/variables sont explicites pour q
 Les tests automatiques (avec la lib interne de Node) vérifient les fonctionnalités principales : connexion, upload, suppression, compression…
 
 ## Comment se connecter
-Se diriger au lient suivant : http://localhost:3000
+Se diriger au lien suivant : http://localhost:3000
